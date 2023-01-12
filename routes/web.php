@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::apiResource('cliente', 'ClienteController');
+Route::apiResource('carro', 'CarroController');
+Route::apiResource('locacao', 'LocacaoController');
+Route::apiResource('modelo', 'ModeloController');
+Route::apiResource('marca', 'MarcaController');
