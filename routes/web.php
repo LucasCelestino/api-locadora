@@ -12,9 +12,3 @@ use Illuminate\Support\Facades\Route;
 | contains the "web" middleware group. Now create something great!
 |
 */
-
-Route::apiResource('cliente', 'ClienteController');
-Route::apiResource('carro', 'CarroController');
-Route::apiResource('locacao', 'LocacaoController');
-Route::apiResource('modelo', 'ModeloController');
-Route::apiResource('marca', 'MarcaController');
