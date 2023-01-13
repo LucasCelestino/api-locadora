@@ -23,7 +23,7 @@ class MarcaController extends Controller
     {
         $marcas = $this->marca->all();
 
-        return $marcas;
+        return response()->json($marcas, 200);
     }
 
     /**
@@ -36,7 +36,7 @@ class MarcaController extends Controller
     {
         $marca = $this->marca->create($request->all());
 
-        return $marca;
+        return response()->json($marca, 201);
     }
 
     /**
@@ -48,6 +48,11 @@ class MarcaController extends Controller
     public function show(int $id)
     {
         $marca = $this->marca->find($id);
+
+        if($marca === null)
+        {
+            return response()->json(['erro'=>'Recurso pesquisado não existe.'], 404);
+        }
 
         return $marca;
     }
@@ -63,6 +68,11 @@ class MarcaController extends Controller
     {
         $marca = $this->marca->find($id);
 
+        if($marca === null)
+        {
+            return response()->json(['erro'=>'Recurso pesquisado não existe.'], 404);
+        }
+
         $marca->update($request->all());
 
         return $marca;
@@ -77,6 +87,11 @@ class MarcaController extends Controller
     public function destroy(int $id)
     {
         $marca = $this->marca->find($id);
+
+        if($marca === null)
+        {
+            return response()->json(['erro'=>'Recurso pesquisado não existe.'], 404);
+        }
 
         $marca->delete();
 
