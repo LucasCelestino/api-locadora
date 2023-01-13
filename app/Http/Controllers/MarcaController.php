@@ -76,7 +76,24 @@ class MarcaController extends Controller
             return response()->json(['erro'=>'Recurso pesquisado não existe.'], 404);
         }
 
-        $request->validate($this->marca->rules(), $this->marca->feedback());
+        if($request->method() === 'PATCH')
+        {
+            $dynamicRules = array();
+
+            foreach($marca->rules() as $input => $rule)
+            {
+                if(array_key_exists($input, $request->all()))
+                {
+                    $dynamicRules[$input] = $rule;
+                }
+            }
+
+            $request->validate($dynamicRules, $marca->feedback());
+        }
+        else
+        {
+            $request->validate($marca->rules(), $marca->feedback());
+        }
 
         $marca->update($request->all());
 
