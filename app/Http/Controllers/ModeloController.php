@@ -21,9 +21,7 @@ class ModeloController extends Controller
      */
     public function index()
     {
-        $modelos = $this->modelo->all();
-
-        return response()->json($modelos, 200);
+        return response()->json($this->modelo->with('marca')->get(), 200);
     }
 
     /**
@@ -61,7 +59,7 @@ class ModeloController extends Controller
      */
     public function show(int $id)
     {
-        $modelo = $this->modelo->find($id);
+        $modelo = $this->modelo->with('marca')->find($id);
 
         if($modelo === null)
         {
@@ -80,7 +78,7 @@ class ModeloController extends Controller
      */
     public function update(Request $request, int $id)
     {
-        $modelo = $this->modelo->find($id);
+        $modelo = $this->modelo->with('marca')->find($id);
 
         if($modelo === null)
         {
@@ -136,7 +134,7 @@ class ModeloController extends Controller
      */
     public function destroy(int $id)
     {
-        $modelo = $this->modelo->find($id);
+        $modelo = $this->modelo->with('marca')->find($id);
 
         if($modelo === null)
         {
