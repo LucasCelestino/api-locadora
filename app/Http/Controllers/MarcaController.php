@@ -106,16 +106,21 @@ class MarcaController extends Controller
         if($request->file('imagem'))
         {
             Storage::disk('public')->delete($marca->imagem);
+
+            $image = $request->file('imagem');
+
+            $image_urn = $image->store('imagens', 'public');
+
+            $marca->fill($request->all());
+
+            $marca->imagem = $image_urn;
+        }
+        else
+        {
+            $marca->fill($request->all());
         }
 
-        $image = $request->file('imagem');
-
-        $image_urn = $image->store('imagens', 'public');
-
-        $marca->update([
-            'nome'=>$request->nome,
-            'imagem'=>$image_urn
-        ]);
+        $marca->save();
 
         return $marca;
     }
@@ -139,6 +144,6 @@ class MarcaController extends Controller
 
         $marca->delete();
 
-        return ['msg'=>'Marca removida com sucesso.'];
+        return response()->json(['mensagem'=>'Marca removida com sucesso.'], 200);
     }
 }
