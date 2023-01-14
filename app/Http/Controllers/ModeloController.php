@@ -22,17 +22,32 @@ class ModeloController extends Controller
     public function index(Request $request)
     {
 
-        $modelos = array();
+        $modelos = '';
+
+        if($request->has('filters'))
+        {
+            $filters = explode(';', $request->filters);
+
+            foreach ($filters as $key => $value)
+            {
+                $filter = explode(':', $value);
+                $modelos = $this->modelo->where($filter[0], $filter[1], $filter[2]);
+            }
+        }
+        else
+        {
+            $modelos = $this->modelo;
+        }
 
         if($request->has('fields'))
         {
             $attributes = $request->fields;
 
-            $modelos = $this->modelo->selectRaw($attributes)->with('marca')->get();
+            $modelos = $modelos->selectRaw($attributes)->with('marca')->get();
         }
         else
         {
-            $modelos = $this->modelo->with('marca')->get();
+            $modelos = $modelos->with('marca')->get();
         }
 
         return response()->json($modelos, 200);
