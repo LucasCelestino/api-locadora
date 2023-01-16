@@ -11,7 +11,7 @@ interface AbstractRepository
 
     public function findAll(): LengthAwarePaginator;
 
-    /* public function findById(int $id); */
+    public function findById(int $id);
 
     public function delete(Marca $entity): bool;
 }
