@@ -3,16 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Models\Marca;
+use App\Repositories\MarcaRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class MarcaController extends Controller
 {
     private Marca $marca;
+    private MarcaRepository $marcaRepository;
 
-    public function __construct(Marca $marca)
+    public function __construct(Marca $marca, MarcaRepository $marcaRepository)
     {
         $this->marca = $marca;
+        $this->marcaRepository = $marcaRepository;
     }
 
     /**
@@ -22,7 +25,7 @@ class MarcaController extends Controller
      */
     public function index()
     {
-        $marcas = $this->marca->with('modelos')->get();
+        $marcas = $this->marcaRepository->findAll();
 
         return response()->json($marcas, 200);
     }
@@ -41,7 +44,7 @@ class MarcaController extends Controller
 
         $image_urn = $image->store('imagens', 'public');
 
-        $marca = $this->marca->create([
+        $marca = $this->marcaRepository->save([
             'nome'=>$request->nome,
             'imagem'=>$image_urn
         ]);
@@ -57,14 +60,16 @@ class MarcaController extends Controller
      */
     public function show(int $id)
     {
-        $marca = $this->marca->with('modelos')->find($id);
+        $marca = $this->marcaRepository->findById($id);
 
         if($marca === null)
         {
-            return response()->json(['erro'=>'Recurso pesquisado não existe.'], 404);
+            return response()->json(['mensagem'=>[
+                'erro'=>'Recurso pesquisado não existe.'
+            ]], 404);
         }
 
-        return $marca;
+        return response()->json($marca, 200);
     }
 
     /**
@@ -76,11 +81,13 @@ class MarcaController extends Controller
      */
     public function update(Request $request, int $id)
     {
-        $marca = $this->marca->with('modelos')->find($id);
+        $marca = $this->marcaRepository->findById($id);
 
         if($marca === null)
         {
-            return response()->json(['erro'=>'Recurso pesquisado não existe.'], 404);
+            return response()->json(['mensagem'=>[
+                'erro'=>'Recurso pesquisado não existe.'
+            ]], 404);
         }
 
         if($request->method() === 'PATCH')
@@ -96,32 +103,43 @@ class MarcaController extends Controller
             }
 
             $request->validate($dynamicRules, $marca->feedback());
+
+            if($request->file('imagem'))
+            {
+                Storage::disk('public')->delete($marca->imagem);
+
+                $image = $request->file('imagem');
+
+                $image_urn = $image->store('imagens', 'public');
+
+                $marca->imagem = $image_urn;
+
+                $updatedMarca = $this->marcaRepository->save($marca->getAttributes());
+            }
+            else
+            {
+                $marca->nome = $request->nome;
+
+                $updatedMarca = $this->marcaRepository->save($marca->getAttributes());
+            }
         }
         else
         {
             $request->validate($marca->rules(), $marca->feedback());
-        }
 
-        if($request->file('imagem'))
-        {
             Storage::disk('public')->delete($marca->imagem);
 
             $image = $request->file('imagem');
 
             $image_urn = $image->store('imagens', 'public');
 
-            $marca->fill($request->all());
-
             $marca->imagem = $image_urn;
-        }
-        else
-        {
-            $marca->fill($request->all());
+            $marca->nome = $request->nome;
+
+            $updatedMarca = $this->marcaRepository->save($marca->getAttributes());
         }
 
-        $marca->save();
-
-        return $marca;
+        return response()->json($updatedMarca, 200);
     }
 
     /**
@@ -132,17 +150,24 @@ class MarcaController extends Controller
      */
     public function destroy(int $id)
     {
-        $marca = $this->marca->with('modelos')->find($id);
+        $marca = $this->marcaRepository->findById($id);
 
         if($marca === null)
         {
-            return response()->json(['erro'=>'Recurso pesquisado não existe.'], 404);
+            return response()->json(['mensagem'=>[
+                'erro'=>'Recurso pesquisado não existe.'
+            ]], 404);
         }
 
         Storage::disk('public')->delete($marca->imagem);
 
-        $marca->delete();
+        if(!$this->marcaRepository->delete($marca))
+        {
+            return response()->json(['mensagem'=>['erro'=>'Ocorreu um erro ao remover o recurso solicitado, tente novamente.']], 500);
+        }
 
-        return response()->json(['mensagem'=>'Marca removida com sucesso.'], 200);
+        return response()->json(['mensagem'=>[
+            'sucesso'=>'Recurso removido com sucesso.'
+        ]], 200);
     }
 }

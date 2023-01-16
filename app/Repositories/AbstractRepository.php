@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Models\Marca;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 interface AbstractRepository
@@ -10,7 +11,7 @@ interface AbstractRepository
 
     public function findAll(): LengthAwarePaginator;
 
-    public function findById(int $id);
+    /* public function findById(int $id); */
 
-    public function delete(int $id): bool;
+    public function delete(Marca $entity): bool;
 }
