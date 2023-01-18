@@ -3,11 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cliente;
-use App\Http\Requests\StoreClienteRequest;
 use App\Http\Requests\UpdateClienteRequest;
+use App\Repositories\ClienteRepository;
+use Illuminate\Http\Request;
 
 class ClienteController extends Controller
 {
+    private Cliente $cliente;
+    private ClienteRepository $clienteRepository;
+
+    public function __construct(Cliente $cliente, ClienteRepository $clienteRepository)
+    {
+        $this->cliente = $cliente;
+        $this->clienteRepository = $clienteRepository;
+    }
     /**
      * Display a listing of the resource.
      *
@@ -15,17 +24,9 @@ class ClienteController extends Controller
      */
     public function index()
     {
-        //
-    }
+        $clientes = $this->clienteRepository->findAll();
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
+        return response()->json($clientes, 200);
     }
 
     /**
@@ -34,9 +35,15 @@ class ClienteController extends Controller
      * @param  \App\Http\Requests\StoreClienteRequest  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(StoreClienteRequest $request)
+    public function store(Request $request)
     {
-        //
+        $request->validate($this->cliente->rules(), $this->cliente->feedback());
+
+        $cliente = $this->clienteRepository->save([
+            'nome'=>$request->nome
+        ]);
+
+        return response()->json($cliente, 201);
     }
 
     /**
@@ -45,20 +52,18 @@ class ClienteController extends Controller
      * @param  \App\Models\Cliente  $cliente
      * @return \Illuminate\Http\Response
      */
-    public function show(Cliente $cliente)
+    public function show(int $id)
     {
-        //
-    }
+        $cliente = $this->clienteRepository->findById($id);
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\Models\Cliente  $cliente
-     * @return \Illuminate\Http\Response
-     */
-    public function edit(Cliente $cliente)
-    {
-        //
+        if($cliente === null)
+        {
+            return response()->json(['mensagem'=>[
+                'erro'=>'Recurso pesquisado não existe.'
+            ]], 404);
+        }
+
+        return response()->json($cliente, 200);
     }
 
     /**
@@ -68,9 +73,24 @@ class ClienteController extends Controller
      * @param  \App\Models\Cliente  $cliente
      * @return \Illuminate\Http\Response
      */
-    public function update(UpdateClienteRequest $request, Cliente $cliente)
+    public function update(Request $request, int $id)
     {
-        //
+        $request->validate($this->cliente->rules(), $this->cliente->feedback());
+
+        $cliente = $this->clienteRepository->findById($id);
+
+        if($cliente === null)
+        {
+            return response()->json(['mensagem'=>[
+                'erro'=>'Recurso pesquisado não existe.'
+            ]], 404);
+        }
+
+        $cliente->nome = $request->nome;
+
+        $updatedCliente = $this->clienteRepository->save($cliente->getAttributes());
+
+        return response()->json($updatedCliente, 200);
     }
 
     /**
@@ -79,8 +99,24 @@ class ClienteController extends Controller
      * @param  \App\Models\Cliente  $cliente
      * @return \Illuminate\Http\Response
      */
-    public function destroy(Cliente $cliente)
+    public function destroy(int $id)
     {
-        //
+        $cliente = $this->clienteRepository->findById($id);
+
+        if($cliente === null)
+        {
+            return response()->json(['mensagem'=>[
+                'erro'=>'Recurso pesquisado não existe.'
+            ]], 404);
+        }
+
+        if(!$this->clienteRepository->delete($cliente))
+        {
+            return response()->json(['mensagem'=>['erro'=>'Ocorreu um erro ao remover o recurso solicitado, tente novamente.']], 500);
+        }
+
+        return response()->json(['mensagem'=>[
+            'sucesso'=>'Recurso removido com sucesso.'
+        ]], 200);
     }
 }
