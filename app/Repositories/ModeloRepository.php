@@ -2,26 +2,26 @@
 
 namespace App\Repositories;
 
-use App\Models\Marca;
+use App\Models\Modelo;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
-class MarcaRepository implements AbstractRepository
+class ModeloRepository implements AbstractRepository
 {
-    private Marca $marca;
+    private Modelo $modelo;
 
-    public function __construct(Marca $marca)
+    public function __construct(Modelo $modelo)
     {
-        $this->marca = $marca;
+        $this->modelo = $modelo;
     }
 
     public function findAll(): LengthAwarePaginator
     {
-        return $this->marca->paginate();
+        return $this->modelo->paginate();
     }
 
     public function findById(int $id)
     {
-        return $this->marca->with('modelos')->find($id);
+        return $this->modelo->with('marca')->find($id);
     }
 
     public function save(array $data)
@@ -38,7 +38,7 @@ class MarcaRepository implements AbstractRepository
         }
         else
         {
-            return $this->marca->create($data);
+            return $this->modelo->create($data);
         }
     }
 

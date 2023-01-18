@@ -3,52 +3,29 @@
 namespace App\Http\Controllers;
 
 use App\Models\Modelo;
+use App\Repositories\ModeloRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class ModeloController extends Controller
 {
     private Modelo $modelo;
+    private ModeloRepository $modeloRepository;
 
-    public function __construct(Modelo $modelo)
+    public function __construct(Modelo $modelo, ModeloRepository $modeloRepository)
     {
         $this->modelo = $modelo;
+        $this->modeloRepository = $modeloRepository;
     }
     /**
      * Display a listing of the resource.
      *
      * @return \Illuminate\Http\Response
      */
-    public function index(Request $request)
+    public function index()
     {
 
-        $modelos = '';
-
-        if($request->has('filters'))
-        {
-            $filters = explode(';', $request->filters);
-
-            foreach ($filters as $key => $value)
-            {
-                $filter = explode(':', $value);
-                $modelos = $this->modelo->where($filter[0], $filter[1], $filter[2]);
-            }
-        }
-        else
-        {
-            $modelos = $this->modelo;
-        }
-
-        if($request->has('fields'))
-        {
-            $attributes = $request->fields;
-
-            $modelos = $modelos->selectRaw($attributes)->with('marca')->get();
-        }
-        else
-        {
-            $modelos = $modelos->with('marca')->get();
-        }
+        $modelos = $this->modeloRepository->findAll();
 
         return response()->json($modelos, 200);
     }
@@ -67,7 +44,7 @@ class ModeloController extends Controller
 
         $image_urn = $image->store('imagens/modelos', 'public');
 
-        $modelo = $this->modelo->create([
+        $modelo = $this->modeloRepository->save([
             'marca_id'=>$request->marca_id,
             'nome'=>$request->nome,
             'imagem'=>$image_urn,
@@ -88,14 +65,16 @@ class ModeloController extends Controller
      */
     public function show(int $id)
     {
-        $modelo = $this->modelo->with('marca')->find($id);
+        $modelo = $this->modeloRepository->findById($id);
 
         if($modelo === null)
         {
-            return response()->json(['erro'=>'Recurso pesquisado não existe.'], 404);
+            return response()->json(['mensagem'=>[
+                'erro'=>'Recurso pesquisado não existe.'
+            ]], 404);
         }
 
-        return $modelo;
+        return response()->json($modelo, 200);
     }
 
     /**
@@ -107,11 +86,13 @@ class ModeloController extends Controller
      */
     public function update(Request $request, int $id)
     {
-        $modelo = $this->modelo->with('marca')->find($id);
+        $modelo = $this->modeloRepository->findById($id);
 
         if($modelo === null)
         {
-            return response()->json(['erro'=>'Recurso pesquisado não existe.'], 404);
+            return response()->json(['mensagem'=>[
+                'erro'=>'Recurso pesquisado não existe.'
+            ]], 404);
         }
 
         if($request->method() === 'PATCH')
@@ -127,32 +108,61 @@ class ModeloController extends Controller
             }
 
             $request->validate($dynamicRules);
+
+            if($request->file('imagem'))
+            {
+                Storage::disk('public')->delete($modelo->imagem);
+
+                $image = $request->file('imagem');
+
+                $image_urn = $image->store('imagens', 'public');
+
+                $modelo->imagem = $image_urn;
+
+                foreach ($request->all() as $key => $value)
+                {
+                    if($key == 'imagem')
+                    {
+                        continue;
+                    }
+
+                    $modelo->$key = $value;
+                }
+
+                $updatedMarca = $this->modeloRepository->save($modelo->getAttributes());
+            }
+            else
+            {
+                dd($request->all());
+                $updatedMarca = $this->modeloRepository->save($modelo->getAttributes());
+            }
         }
         else
         {
             $request->validate($modelo->rules());
-        }
 
-        if($request->file('imagem'))
-        {
             Storage::disk('public')->delete($modelo->imagem);
 
             $image = $request->file('imagem');
 
-            $image_urn = $image->store('imagens/modelos', 'public');
-
-            $modelo->fill($request->all());
+            $image_urn = $image->store('imagens', 'public');
 
             $modelo->imagem = $image_urn;
-        }
-        else
-        {
-            $modelo->fill($request->all());
+
+            foreach ($request->all() as $key => $value)
+            {
+                if($key == 'imagem')
+                {
+                    continue;
+                }
+
+                $modelo->$key = $value;
+            }
+
+            $updatedMarca = $this->modeloRepository->save($modelo->getAttributes());
         }
 
-        $modelo->save();
-
-        return $modelo;
+        return response()->json($updatedMarca, 200);
     }
 
     /**
@@ -163,17 +173,24 @@ class ModeloController extends Controller
      */
     public function destroy(int $id)
     {
-        $modelo = $this->modelo->with('marca')->find($id);
+        $modelo = $this->modeloRepository->findById($id);
 
         if($modelo === null)
         {
-            return response()->json(['erro'=>'Recurso pesquisado não existe.'], 404);
+            return response()->json(['mensagem'=>[
+                'erro'=>'Recurso pesquisado não existe.'
+            ]], 404);
         }
 
         Storage::disk('public')->delete($modelo->imagem);
 
-        $modelo->delete();
+        if(!$this->modeloRepository->delete($modelo))
+        {
+            return response()->json(['mensagem'=>['erro'=>'Ocorreu um erro ao remover o recurso solicitado, tente novamente.']], 500);
+        }
 
-        return ['msg'=>'Modelo removido com sucesso.'];
+        return response()->json(['mensagem'=>[
+            'sucesso'=>'Recurso removido com sucesso.'
+        ]], 200);
     }
 }
